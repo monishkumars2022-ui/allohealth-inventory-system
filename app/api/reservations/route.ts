@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type InventoryRow = {
+  id: string;
+  productId: string;
+  warehouseId: string;
+  totalStock: number;
+  reservedStock: number;
+};
+
 export async function POST(req: NextRequest) {
 
   try {
@@ -26,19 +34,20 @@ export async function POST(req: NextRequest) {
       async (tx) => {
 
         // Lock inventory row
-        const inventoryRows = await tx.$queryRawUnsafe(
-          `
-          SELECT *
-          FROM "Inventory"
-          WHERE "productId" = $1
-          AND "warehouseId" = $2
-          FOR UPDATE
-          `,
-          productId,
-          warehouseId
-        );
+        const inventoryRows =
+          await tx.$queryRawUnsafe<InventoryRow[]>(
+            `
+            SELECT *
+            FROM "Inventory"
+            WHERE "productId" = $1
+            AND "warehouseId" = $2
+            FOR UPDATE
+            `,
+            productId,
+            warehouseId
+          );
 
-        const inventory = inventoryRows[0] as any;
+        const inventory = inventoryRows[0];
 
         // Inventory not found
         if (!inventory) {
